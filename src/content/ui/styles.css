@@ -1,0 +1,175 @@
+/**
+ * Social Media Saver - Injected Button Styles
+ */
+
+/* Save Button */
+.social-saver-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  margin-left: 8px;
+  border: none;
+  border-radius: 9999px;
+  background-color: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.8;
+}
+
+.social-saver-btn:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  opacity: 1;
+}
+
+.social-saver-btn:active {
+  transform: scale(0.95);
+}
+
+.social-saver-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Icon */
+.social-saver-icon {
+  flex-shrink: 0;
+}
+
+/* Text */
+.social-saver-text {
+  white-space: nowrap;
+}
+
+/* Loading State */
+.social-saver-btn.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.social-saver-btn.loading .social-saver-icon.spin {
+  animation: social-saver-spin 1s linear infinite;
+}
+
+@keyframes social-saver-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Success State */
+.social-saver-btn.success {
+  color: #10b981 !important;
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+/* Error State */
+.social-saver-btn.error {
+  color: #ef4444 !important;
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Platform-Specific Overrides */
+
+/* Facebook */
+body[class*="facebook"] .social-saver-btn,
+.facebook .social-saver-btn {
+  font-size: 15px;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+/* Twitter/X */
+body[class*="twitter"] .social-saver-btn,
+body[class*="x.com"] .social-saver-btn {
+  color: rgb(83, 100, 113);
+  font-size: 13px;
+  padding: 0 12px;
+  height: 34px;
+  border-radius: 9999px;
+}
+
+body[class*="twitter"] .social-saver-btn:hover,
+body[class*="x.com"] .social-saver-btn:hover {
+  color: #1d9bf0;
+  background-color: rgba(29, 155, 240, 0.1);
+}
+
+/* LinkedIn */
+body[class*="linkedin"] .social-saver-btn {
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 16px;
+}
+
+/* Instagram */
+body[class*="instagram"] .social-saver-btn {
+  color: #262626;
+  font-size: 14px;
+  padding: 8px;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .social-saver-btn {
+    color: #e4e6eb;
+  }
+
+  .social-saver-btn:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+  }
+
+  body[class*="instagram"] .social-saver-btn {
+    color: #f5f5f5;
+  }
+}
+
+/* Compact Mode - Hide text on smaller screens */
+@media (max-width: 600px) {
+  .social-saver-text {
+    display: none;
+  }
+
+  .social-saver-btn {
+    padding: 8px;
+    margin-left: 4px;
+  }
+}
+
+/* Tooltip */
+.social-saver-btn[title] {
+  position: relative;
+}
+
+.social-saver-btn[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background-color: #333;
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  animation: social-saver-fadeIn 0.2s ease forwards;
+  animation-delay: 0.5s;
+}
+
+@keyframes social-saver-fadeIn {
+  to {
+    opacity: 1;
+  }
+}

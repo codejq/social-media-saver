@@ -1,0 +1,136 @@
+# ---------------------------------------------------------------------------
+# Publishes Social Media Saver to the Chrome Web Store.
+#
+# SETUP (one-time, see README "Publishing" section for full walkthrough):
+#   1. Create the extension in the Chrome Web Store Developer Dashboard
+#        https://developer.chrome.com/distribution/
+#      Note the Extension ID shown on the item's dashboard page.
+#
+#   2. Enable the Chrome Web Store API in Google Cloud Console
+#        https://console.cloud.google.com/apis/library
+#      Create an OAuth 2.0 client (type: Desktop App).
+#      Copy the Client ID and Client Secret.
+#
+#   3. Open this URL in a browser (replace YOUR_CLIENT_ID):
+#        https://accounts.google.com/o/oauth2/v2/auth\
+#          ?scope=https://www.googleapis.com/auth/chromewebstore\
+#          &response_type=code\
+#          &client_id=YOUR_CLIENT_ID\
+#          &redirect_uri=urn:ietf:wg:oauth:2.0:oob\
+#          &access_type=offline
+#      Copy the authorisation code, then exchange it for a refresh token:
+#        curl -s -X POST https://accounts.google.com/o/oauth2/token \
+#          -d "code=AUTH_CODE" \
+#          -d "client_id=YOUR_CLIENT_ID" \
+#          -d "client_secret=YOUR_CLIENT_SECRET" \
+#          -d "redirect_uri=urn:ietf:wg:oauth:2.0:oob" \
+#          -d "grant_type=authorization_code"
+#      The response JSON contains "refresh_token" — save it.
+#
+#   4. Add four secrets to the GitHub repository
+#        (Settings > Secrets and variables > Actions > New secret):
+#          CHROME_EXTENSION_ID      – from the Developer Dashboard
+#          CHROME_CLIENT_ID         – from the OAuth client
+#          CHROME_CLIENT_SECRET     – from the OAuth client
+#          CHROME_REFRESH_TOKEN     – from step 3
+# ---------------------------------------------------------------------------
+
+name: Publish to Chrome Web Store
+
+on:
+  # ── manual trigger ────────────────────────────────────────────────────
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish to the store after uploading (false = upload as draft only)"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      target:
+        description: "Who can see the published version (ignored when publish is false)"
+        required: false
+        default: "trustedTesters"
+        type: choice
+        options:
+          - trustedTesters   # internal testers only – safe default
+          - everyone         # visible to all Chrome Web Store users
+
+  # ── auto-publish on version tags (v1.0.0, v1.2.3, …) ──────────────────
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── checkout & build ──────────────────────────────────────────────
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Create extension zip
+        run: cd dist && zip -r ../extension.zip .
+
+      # ── Chrome Web Store API ──────────────────────────────────────────
+      - name: Obtain OAuth2 access token
+        id: auth
+        run: |
+          RESPONSE=$(curl -s -X POST https://accounts.google.com/o/oauth2/token \
+            -d "client_id=${{ secrets.CHROME_CLIENT_ID }}" \
+            -d "client_secret=${{ secrets.CHROME_CLIENT_SECRET }}" \
+            -d "refresh_token=${{ secrets.CHROME_REFRESH_TOKEN }}" \
+            -d "grant_type=refresh_token")
+          TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
+          if [ "$TOKEN" = "null" ] || [ -z "$TOKEN" ]; then
+            echo "ERROR: could not obtain access token" >&2
+            echo "$RESPONSE" | jq . >&2
+            exit 1
+          fi
+          # Mask the token so it never appears in any log line
+          echo "::add-mask::$TOKEN"
+          echo "access_token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Upload extension zip to Chrome Web Store
+        run: |
+          HTTP=$(curl -s -o /tmp/upload.json -w '%{http_code}' -X PUT \
+            "https://www.googleapis.com/upload/chromewebstore/v1_1/items/${{ secrets.CHROME_EXTENSION_ID }}/upload?uploadType=media" \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}" \
+            -H "Content-Type: application/zip" \
+            --data-binary @extension.zip)
+          echo "Upload HTTP status: $HTTP"
+          cat /tmp/upload.json | jq .
+          [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || { echo "Upload failed"; exit 1; }
+
+      # ── publish ───────────────────────────────────────────────────────
+      # Runs when:  a) a version tag is pushed (defaults to trustedTesters)
+      #          or b) the workflow was triggered manually with publish = true
+      - name: Publish to Chrome Web Store
+        if: github.event_name == 'push' || github.event.inputs.publish == 'true'
+        run: |
+          # Determine publish target – tag pushes default to trustedTesters
+          TARGET="${{ github.event.inputs.target }}"
+          [ -z "$TARGET" ] && TARGET="trustedTesters"
+          echo "Publish target: $TARGET"
+
+          HTTP=$(curl -s -o /tmp/publish.json -w '%{http_code}' -X POST \
+            "https://www.googleapis.com/chromewebstore/v1_1/items/${{ secrets.CHROME_EXTENSION_ID }}/publish" \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"target\":\"$TARGET\"}")
+          echo "Publish HTTP status: $HTTP"
+          cat /tmp/publish.json | jq .
+          [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || { echo "Publish failed"; exit 1; }
