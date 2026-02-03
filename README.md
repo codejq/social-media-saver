@@ -1,6 +1,10 @@
 # Social Media Saver
 
-A Chrome extension that lets you save social media posts directly to your local device — no cloud account required. When you browse Facebook, Twitter/X, LinkedIn, or Instagram, a Save button appears on each post. One click captures the text, images, author info, and metadata, storing everything in your browser's local IndexedDB. You can browse, search, and export your saved content at any time from the extension's built-in viewer.
+A Chrome extension that captures social media posts and either saves them locally or publishes them to your own blog or site. When you browse Facebook, Twitter/X, LinkedIn, or Instagram, a Save button appears on each post. One click captures the text, images, author info, and metadata. The content is stored in your browser's local IndexedDB and, if you have configured a publishing destination, automatically queued for posting to WordPress, Drupal, a Micropub endpoint, or any custom webhook. You can browse, search, and export your saved content at any time from the extension's built-in viewer.
+
+## Why this extension exists
+
+Social media algorithms decide which posts you see and which disappear. Good content gets buried, important voices get equal or less visibility regardless of quality, and once a post scrolls off the feed it is effectively gone. This extension puts you back in control: every post you want to keep is one click away from being saved permanently on your own device, and optionally republished to a platform you own — your WordPress blog, your Drupal site, your personal Micropub feed, or any endpoint that accepts a webhook. Your content, your terms.
 
 ## Supported Platforms
 
@@ -20,7 +24,8 @@ A Chrome extension that lets you save social media posts directly to your local 
 2. The content script detects posts using platform-specific DOM selectors and injects a Save button next to each post's action row.
 3. When you click Save, the extractor pulls the post text, images, author details, and engagement metrics out of the DOM.
 4. The extracted content is sent to the background service worker via Chrome message passing, which writes it to IndexedDB via Dexie.
-5. You view everything later through the Saved Content page in the extension options.
+5. If a default publishing destination is configured (WordPress, Drupal, Micropub, or a webhook), the post is automatically added to the publish queue. The queue manager retries on failure and updates the post status once it is live.
+6. You view everything later through the Saved Content page in the extension options.
 
 ## Tech Stack
 
@@ -50,6 +55,7 @@ src/
 ├── lib/
 │   ├── storage/         # IndexedDB (Dexie) and chrome.storage wrappers
 │   ├── queue/           # Save-queue manager with retry strategy
+│   ├── publishers/      # Remote-destination publishers (WordPress, Drupal, Micropub, Webhook)
 │   └── utils/           # Crypto, logging, message-passing, validators
 ├── options/             # Options page (React app)
 │   ├── pages/           # Saved Content, Destinations, Platforms, Advanced, About
@@ -119,6 +125,7 @@ Contributions are welcome. Whether it is a new platform extractor, a bug fix, a 
 | Saved-content viewer | `src/options/pages/SavedContent.tsx` |
 | Storage / export | `src/lib/storage/indexeddb.ts` |
 | Save queue / retry logic | `src/lib/queue/` |
+| Publishing destinations | `src/lib/publishers/` — each file is one destination type; extend `BasePublisher` for a new one |
 
 ### Contribution Guidelines
 

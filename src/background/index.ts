@@ -1,5 +1,6 @@
 import { storage } from '@/lib/storage';
 import { queueManager } from '@/lib/queue';
+import { createPublisher } from '@/lib/publishers';
 import { createMessageListener } from '@/lib/utils/message-passing';
 import { logger, LogLevel } from '@/lib/utils/logger';
 import type {
@@ -37,6 +38,9 @@ async function initialize(): Promise<void> {
 
     // Set up message handlers
     setupMessageHandlers();
+
+    // Wire up the publisher factory so the queue can publish to remote destinations
+    queueManager.setPublisherFactory(createPublisher);
 
     // Resume queue processing
     queueManager.resume();
@@ -372,12 +376,22 @@ async function handleTestDestination(
       return { success: true, data: { success: true, message: 'Local storage is ready' } };
     }
 
-    // TODO: Implement actual connection testing for remote destinations
-    return { success: true, data: { success: true, message: 'Connection test not implemented' } };
+    const publisher = createPublisher(destination);
+    const connected = await publisher.testConnection();
+    return {
+      success: true,
+      data: {
+        success: connected,
+        message: connected ? 'Connection successful' : 'Connection failed',
+      },
+    };
   } catch (error) {
     return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      success: true,
+      data: {
+        success: false,
+        message: error instanceof Error ? error.message : 'Connection test failed',
+      },
     };
   }
 }
