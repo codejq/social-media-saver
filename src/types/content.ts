@@ -8,7 +8,8 @@ export type PlatformType =
   | 'instagram'
   | 'tiktok'
   | 'reddit'
-  | 'pinterest';
+  | 'pinterest'
+  | 'custom';
 
 /**
  * Media item types
@@ -24,6 +25,7 @@ export interface AuthorInfo {
   username?: string;
   profileUrl: string;
   avatarUrl?: string;
+  cachedAvatarUrl?: string; // base64 data URL from IndexedDB cache
   verified?: boolean;
 }
 
@@ -39,6 +41,7 @@ export interface MediaItem {
   duration?: number;
   alt?: string;
   localPath?: string;
+  cachedUrl?: string; // base64 data URL stored from IndexedDB cache
   blob?: Blob;
 }
 

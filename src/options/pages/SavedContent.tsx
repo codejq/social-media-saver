@@ -12,6 +12,7 @@ const platformColors: Record<PlatformType, string> = {
   tiktok: 'bg-gray-900 text-white',
   reddit: 'bg-orange-100 text-orange-800',
   pinterest: 'bg-red-100 text-red-800',
+  custom: 'bg-gray-100 text-gray-800',
 };
 
 const statusColors: Record<SavedPostStatus, string> = {
@@ -107,7 +108,7 @@ export default function SavedContent() {
 
   const getThumbnail = (post: SavedPost) => {
     const media = post.content?.media?.[0];
-    return media ? media.thumbnailUrl || media.url : null;
+    return media ? media.cachedUrl || media.thumbnailUrl || media.url : null;
   };
 
   return (
@@ -226,9 +227,9 @@ export default function SavedContent() {
 
                   {/* Author row */}
                   <div className="flex items-center gap-2">
-                    {post.author?.avatarUrl && (
+                    {(post.author?.cachedAvatarUrl || post.author?.avatarUrl) && (
                       <img
-                        src={post.author.avatarUrl}
+                        src={post.author.cachedAvatarUrl || post.author.avatarUrl}
                         alt={post.author.name}
                         className="w-8 h-8 rounded-full object-cover border border-gray-200"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -346,7 +347,7 @@ function DetailModal({
         {media.length > 0 && (
           <div className="relative bg-gray-900">
             <img
-              src={media[galleryIndex]?.thumbnailUrl || media[galleryIndex]?.url}
+              src={media[galleryIndex]?.cachedUrl || media[galleryIndex]?.thumbnailUrl || media[galleryIndex]?.url}
               alt=""
               className="w-full max-h-80 object-contain"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -404,9 +405,9 @@ function DetailModal({
 
           {/* Author card */}
           <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-            {post.author?.avatarUrl ? (
+            {(post.author?.cachedAvatarUrl || post.author?.avatarUrl) ? (
               <img
-                src={post.author.avatarUrl}
+                src={post.author.cachedAvatarUrl || post.author.avatarUrl}
                 alt={post.author.name}
                 className="w-14 h-14 rounded-full object-cover border-2 border-white shadow"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

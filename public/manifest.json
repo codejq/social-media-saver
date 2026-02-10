@@ -8,11 +8,9 @@
     "storage",
     "alarms",
     "notifications",
-    "unlimitedStorage"
-  ],
-
-  "optional_permissions": [
-    "downloads"
+    "unlimitedStorage",
+    "contextMenus",
+    "activeTab"
   ],
 
   "host_permissions": [
@@ -23,7 +21,8 @@
     "*://*.instagram.com/*",
     "*://*.tiktok.com/*",
     "*://*.reddit.com/*",
-    "*://*.pinterest.com/*"
+    "*://*.pinterest.com/*",
+    "<all_urls>"
   ],
 
   "background": {

@@ -3,6 +3,9 @@ import { FacebookExtractor } from './facebook';
 import { TwitterExtractor } from './twitter';
 import { LinkedInExtractor } from './linkedin';
 import { InstagramExtractor } from './instagram';
+import { TikTokExtractor } from './tiktok';
+import { RedditExtractor } from './reddit';
+import { PinterestExtractor } from './pinterest';
 import type { PlatformType } from '@/types';
 
 export { BaseExtractor } from './base-extractor';
@@ -10,6 +13,9 @@ export { FacebookExtractor } from './facebook';
 export { TwitterExtractor } from './twitter';
 export { LinkedInExtractor } from './linkedin';
 export { InstagramExtractor } from './instagram';
+export { TikTokExtractor } from './tiktok';
+export { RedditExtractor } from './reddit';
+export { PinterestExtractor } from './pinterest';
 
 /**
  * Detect current platform from URL
@@ -65,10 +71,14 @@ export function getExtractorForPlatform(platform: PlatformType): BaseExtractor |
       return new LinkedInExtractor();
     case 'instagram':
       return new InstagramExtractor();
-    // TODO: Add other extractors
     case 'tiktok':
+      return new TikTokExtractor();
     case 'reddit':
+      return new RedditExtractor();
     case 'pinterest':
+      return new PinterestExtractor();
+    case 'custom':
+      return null; // Custom content is entered manually, no extractor needed
     default:
       return null;
   }
@@ -77,13 +87,12 @@ export function getExtractorForPlatform(platform: PlatformType): BaseExtractor |
 /**
  * Map of all available extractors
  */
-export const extractors: Record<PlatformType, new () => BaseExtractor> = {
+export const extractors: Partial<Record<PlatformType, new () => BaseExtractor>> = {
   facebook: FacebookExtractor,
   twitter: TwitterExtractor,
   linkedin: LinkedInExtractor,
   instagram: InstagramExtractor,
-  // Placeholders for future extractors
-  tiktok: FacebookExtractor, // TODO: Implement TikTokExtractor
-  reddit: FacebookExtractor, // TODO: Implement RedditExtractor
-  pinterest: FacebookExtractor, // TODO: Implement PinterestExtractor
+  tiktok: TikTokExtractor,
+  reddit: RedditExtractor,
+  pinterest: PinterestExtractor,
 };

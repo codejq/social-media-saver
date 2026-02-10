@@ -158,6 +158,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
     tiktok: createDefaultPlatformSettings(),
     reddit: createDefaultPlatformSettings(),
     pinterest: createDefaultPlatformSettings(),
+    custom: createDefaultPlatformSettings(),
   },
   contentRules: {
     stripTracking: true,

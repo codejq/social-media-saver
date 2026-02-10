@@ -72,8 +72,8 @@ export default function AdvancedPage() {
   const handleExport = async () => {
     try {
       const response = await chrome.runtime.sendMessage({
-        type: 'GET_RECENT_POSTS',
-        payload: { limit: 1000 },
+        type: 'EXPORT_DATA',
+        payload: null,
       });
 
       if (response.success) {
@@ -91,15 +91,50 @@ export default function AdvancedPage() {
     }
   };
 
+  const handleImport = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const response = await chrome.runtime.sendMessage({
+          type: 'IMPORT_DATA',
+          payload: data,
+        });
+        if (response.success) {
+          alert('Data imported successfully');
+          loadData();
+        } else {
+          alert(`Import failed: ${response.error}`);
+        }
+      } catch (error) {
+        console.error('Import failed:', error);
+        alert('Import failed: invalid JSON file');
+      }
+    };
+    input.click();
+  };
+
   const handleClearData = async () => {
     if (!confirm('Are you sure you want to clear all saved data? This cannot be undone.')) {
       return;
     }
 
     try {
-      // This would need a CLEAR_ALL_DATA message handler in background
-      alert('Data cleared successfully');
-      loadData();
+      const response = await chrome.runtime.sendMessage({
+        type: 'CLEAR_ALL_DATA',
+        payload: null,
+      });
+      if (response.success) {
+        alert('Data cleared successfully');
+        loadData();
+      } else {
+        alert(`Failed to clear data: ${response.error}`);
+      }
     } catch (error) {
       console.error('Failed to clear data:', error);
     }
@@ -259,6 +294,9 @@ export default function AdvancedPage() {
             <div className="flex gap-4 pt-4">
               <button onClick={handleExport} className="btn btn-secondary">
                 Export Data
+              </button>
+              <button onClick={handleImport} className="btn btn-secondary">
+                Import Data
               </button>
               <button onClick={handleClearData} className="btn btn-danger">
                 Clear All Data

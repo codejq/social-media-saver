@@ -1,8 +1,10 @@
 import type { Destination, ExtractedContent, PublishResult } from '@/types';
 import { WordPressRestPublisher } from './wordpress-rest';
+import { WordPressXmlRpcPublisher } from './wordpress-xmlrpc';
 import { DrupalJsonApiPublisher } from './drupal-jsonapi';
 import { WebhookPublisher } from './webhook';
 import { MicropubPublisher } from './micropub';
+import { ActivityPubPublisher } from './activitypub';
 
 interface PublisherLike {
   publish(content: ExtractedContent): Promise<PublishResult>;
@@ -18,6 +20,9 @@ export function createPublisher(destination: Destination): PublisherLike {
     case 'wordpress-rest':
       return new WordPressRestPublisher(destination);
 
+    case 'wordpress-xmlrpc':
+      return new WordPressXmlRpcPublisher(destination);
+
     case 'drupal-jsonapi':
       return new DrupalJsonApiPublisher(destination);
 
@@ -27,6 +32,9 @@ export function createPublisher(destination: Destination): PublisherLike {
 
     case 'micropub':
       return new MicropubPublisher(destination);
+
+    case 'activitypub':
+      return new ActivityPubPublisher(destination);
 
     case 'local-indexeddb':
       return { publish: async () => ({ success: true }), testConnection: async () => true };

@@ -2,6 +2,7 @@ import type { QueueItem, QueueStatus, SavedPost, Destination, ExtractedContent, 
 import { QueuePriority } from '@/types';
 import { storage } from '@/lib/storage';
 import { RetryStrategy } from './retry-strategy';
+import { ConflictResolver } from './conflict-resolver';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -18,6 +19,7 @@ export class QueueManager {
   private processing: Set<string> = new Set();
   private maxConcurrent: number = 3;
   private retryStrategy: RetryStrategy;
+  private conflictResolver: ConflictResolver;
   private publisherFactory: PublisherFactory | null = null;
   private isPaused: boolean = false;
   private isProcessing: boolean = false;
@@ -25,6 +27,7 @@ export class QueueManager {
   constructor(maxConcurrent: number = 3) {
     this.maxConcurrent = maxConcurrent;
     this.retryStrategy = new RetryStrategy();
+    this.conflictResolver = new ConflictResolver();
   }
 
   /**
@@ -42,6 +45,12 @@ export class QueueManager {
     destinationId: string,
     priority: QueuePriority = QueuePriority.NORMAL
   ): Promise<string> {
+    // Prevent duplicate enqueue for the same post + destination
+    if (await this.conflictResolver.isDuplicateEnqueue(postId, destinationId)) {
+      logger.info(`Skipping duplicate enqueue for post ${postId} to destination ${destinationId}`);
+      return '';
+    }
+
     const itemId = await storage.enqueueItem({
       postId,
       destinationId,
@@ -125,6 +134,16 @@ export class QueueManager {
 
       if (!destination) {
         throw new Error(`Destination not found: ${item.destinationId}`);
+      }
+
+      // Check for conflicts (post already published to this destination)
+      const conflict = await this.conflictResolver.check(item);
+      if (conflict.hasConflict) {
+        const shouldContinue = await this.conflictResolver.resolve(item, conflict);
+        if (!shouldContinue) {
+          logger.info(`Conflict resolved by skipping post ${item.postId}`);
+          return;
+        }
       }
 
       // Publish content

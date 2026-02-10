@@ -56,6 +56,7 @@ function PostCard({ post }: { post: SavedPost }) {
     tiktok: 'Tk',
     reddit: 'R',
     pinterest: 'P',
+    custom: '+',
   };
 
   const handleOpenPost = () => {

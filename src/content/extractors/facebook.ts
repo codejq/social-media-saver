@@ -186,13 +186,53 @@ export class FacebookExtractor extends BaseExtractor {
       }
     }
 
-    // Get avatar
+    // Get avatar — Facebook profile pics are typically small images near the
+    // author link, inside an SVG <image> or a small <img> in the header area.
     let avatarUrl: string | undefined;
-    const avatarImg = postElement.querySelector<HTMLImageElement>(
-      'svg image[href], img[alt*="profile" i], img[src*="fbcdn"][alt]'
-    );
-    if (avatarImg) {
-      avatarUrl = avatarImg.getAttribute('href') || avatarImg.src;
+
+    // Strategy 1: SVG <image> element (common Facebook avatar pattern)
+    // Facebook uses both href and xlink:href on SVG image elements
+    const svgImage = postElement.querySelector<SVGImageElement>('svg image');
+    if (svgImage) {
+      avatarUrl = svgImage.getAttribute('xlink:href') ||
+        svgImage.getAttribute('href') ||
+        svgImage.href?.baseVal ||
+        undefined;
+    }
+
+    // Strategy 2: Find the author link, then look for a nearby small image
+    if (!avatarUrl && profileUrl) {
+      // The avatar is usually a sibling or ancestor of the author link
+      const authorLinks = postElement.querySelectorAll<HTMLAnchorElement>('a[href]');
+      for (const link of authorLinks) {
+        if (link.href === profileUrl || link.href.startsWith(profileUrl)) {
+          // Check for an img inside or next to this link
+          const img = link.querySelector<HTMLImageElement>('img') ||
+            link.parentElement?.querySelector<HTMLImageElement>('img');
+          if (img && img.src && img.src.includes('fbcdn')) {
+            // Verify it's a small avatar image, not a post image
+            const w = img.naturalWidth || img.width || 0;
+            const h = img.naturalHeight || img.height || 0;
+            if ((w > 0 && w <= 100) || (h > 0 && h <= 100) || w === 0) {
+              avatarUrl = img.src;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Strategy 3: img with "profile" in alt (but only small ones)
+    if (!avatarUrl) {
+      const profileImgs = postElement.querySelectorAll<HTMLImageElement>('img[alt*="profile" i]');
+      for (const img of profileImgs) {
+        const w = img.naturalWidth || img.width || 0;
+        const h = img.naturalHeight || img.height || 0;
+        if (w <= 100 || h <= 100) {
+          avatarUrl = img.src;
+          break;
+        }
+      }
     }
 
     // Check verified status
@@ -433,25 +473,88 @@ export class FacebookExtractor extends BaseExtractor {
   }
 
   /**
-   * Filter out Facebook UI icons / sprites so only real post media survives.
-   * On timeline pages the actual post photos are loaded dynamically and are
-   * not present as <img> tags inside the article, so the result will often be
-   * an empty array — that is correct; the saved-content view will simply show
-   * no thumbnail rather than a broken 12-px icon.
+   * Extract media from a Facebook post.
+   * Facebook loads images in various ways — standard <img>, lazy-loaded,
+   * background-image, and inside photo link wrappers. We try all approaches
+   * and filter out UI sprites / icons.
    */
   extractMedia(postElement: HTMLElement): MediaItem[] {
-    const all = super.extractMedia(postElement);
-    return all.filter((item) => {
-      const url = item.url;
-      // Drop inline data URIs (SVG placeholders)
-      if (url.startsWith('data:')) return false;
-      // Drop Facebook UI resource sprites
-      if (url.includes('static.xx.fbcdn.net/rsrc.php')) return false;
-      if (url.includes('static.xx.fbcdn.net/images/emoji')) return false;
-      // Drop anything smaller than 50 px in either dimension
-      if (item.width && item.height && item.width < 50 && item.height < 50) return false;
-      return true;
+    const media: MediaItem[] = [];
+    const seenUrls = new Set<string>();
+
+    const addImage = (url: string, el?: HTMLImageElement) => {
+      if (!url || seenUrls.has(url)) return;
+      if (url.startsWith('data:')) return;
+      if (url.includes('static.xx.fbcdn.net/rsrc.php')) return;
+      if (url.includes('static.xx.fbcdn.net/images/emoji')) return;
+      // Must be from Facebook CDN
+      if (!url.includes('fbcdn') && !url.includes('facebook.com')) return;
+      // Skip small UI icons
+      if (el) {
+        const w = el.naturalWidth || el.width || 0;
+        const h = el.naturalHeight || el.height || 0;
+        if (w > 0 && w < 50 && h > 0 && h < 50) return;
+      }
+      seenUrls.add(url);
+      media.push({
+        type: 'image',
+        url,
+        alt: el?.alt,
+        width: el?.naturalWidth || el?.width,
+        height: el?.naturalHeight || el?.height,
+      });
+    };
+
+    // 1. Standard img tags from Facebook CDN
+    const imgs = postElement.querySelectorAll<HTMLImageElement>(
+      'img[src*="fbcdn"], img[data-visualcompletion="media-vc-image"]'
+    );
+    imgs.forEach((img) => addImage(this.getBestImageUrl(img), img));
+
+    // 2. Lazy-loaded images (data-src, data-lazy-src)
+    const lazyImgs = postElement.querySelectorAll<HTMLImageElement>('img[data-src*="fbcdn"]');
+    lazyImgs.forEach((img) => {
+      const src = img.dataset.src || img.dataset.lazySrc;
+      if (src) addImage(src, img);
     });
+
+    // 3. Images inside photo links (a[href*="/photo"])
+    const photoLinks = postElement.querySelectorAll<HTMLAnchorElement>(
+      'a[href*="/photo"], a[href*="/photos/"]'
+    );
+    photoLinks.forEach((link) => {
+      const img = link.querySelector<HTMLImageElement>('img');
+      if (img) addImage(this.getBestImageUrl(img), img);
+    });
+
+    // 4. Background images on divs (Facebook sometimes uses this for post photos)
+    const bgDivs = postElement.querySelectorAll<HTMLElement>('div[style*="background-image"]');
+    bgDivs.forEach((div) => {
+      const style = div.getAttribute('style') || '';
+      const match = style.match(/background-image:\s*url\(["']?(https?:\/\/[^"')]+)/);
+      if (match && match[1].includes('fbcdn')) {
+        addImage(match[1]);
+      }
+    });
+
+    // 5. Videos
+    const videos = postElement.querySelectorAll<HTMLVideoElement>('video');
+    videos.forEach((video) => {
+      const url = video.src || video.querySelector('source')?.src;
+      if (url && !seenUrls.has(url)) {
+        seenUrls.add(url);
+        media.push({
+          type: 'video',
+          url,
+          thumbnailUrl: video.poster,
+          width: video.videoWidth,
+          height: video.videoHeight,
+          duration: video.duration,
+        });
+      }
+    });
+
+    return media;
   }
 }
 

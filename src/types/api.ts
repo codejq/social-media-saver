@@ -39,7 +39,11 @@ export type PopupToBackgroundMessage =
   | { type: 'ADD_DESTINATION'; payload: Omit<Destination, 'id' | 'createdAt' | 'updatedAt' | 'stats'> }
   | { type: 'UPDATE_DESTINATION'; payload: { id: string; updates: Partial<Destination> } }
   | { type: 'DELETE_DESTINATION'; payload: { id: string } }
-  | { type: 'TEST_DESTINATION'; payload: { id: string } };
+  | { type: 'TEST_DESTINATION'; payload: { id: string } }
+  | { type: 'CLEAR_ALL_DATA'; payload: null }
+  | { type: 'EXPORT_DATA'; payload: null }
+  | { type: 'IMPORT_DATA'; payload: { posts?: SavedPost[]; destinations?: Destination[]; settings?: ExtensionSettings } }
+  | { type: 'SAVE_CUSTOM_CONTENT'; payload: { title: string; text: string; imageUrls: string[]; sourceUrl?: string } };
 
 /**
  * All message types union
@@ -100,6 +104,20 @@ export interface IStorageService {
   // Settings
   getSettings(): Promise<ExtensionSettings>;
   updateSettings(settings: Partial<ExtensionSettings>): Promise<void>;
+
+  // Media cache
+  cacheMedia(url: string, postId: string, blob: Blob): Promise<string>;
+  getCachedMedia(url: string): Promise<Blob | null>;
+  clearMediaCache(postId?: string): Promise<void>;
+
+  // Queue maintenance
+  clearCompletedItems(): Promise<number>;
+
+  // Data management
+  exportData(): Promise<{ posts: SavedPost[]; destinations: Destination[]; settings: ExtensionSettings }>;
+  importData(data: { posts?: SavedPost[]; destinations?: Destination[]; settings?: ExtensionSettings }): Promise<void>;
+  clearAllData(): Promise<void>;
+  getStorageUsage(): Promise<{ usage: number; quota: number }>;
 }
 
 /**

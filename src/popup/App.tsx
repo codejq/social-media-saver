@@ -2,13 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { useExtensionState } from './hooks/useExtensionState';
 import QueueStatus from './components/QueueStatus';
 import RecentActivity from './components/RecentActivity';
+import QuickSave from './components/QuickSave';
 import Header from './components/Header';
 
-type TabType = 'status' | 'recent' | 'settings';
+type TabType = 'status' | 'recent' | 'quicksave' | 'settings';
+
+const TAB_KEY = 'popup_active_tab';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('status');
   const { queueStatus, recentPosts, isLoading, error, refresh } = useExtensionState();
+
+  // Restore last active tab on mount
+  useEffect(() => {
+    const store = chrome.storage?.session ?? chrome.storage.local;
+    store.get(TAB_KEY, (result) => {
+      const saved = result[TAB_KEY];
+      if (saved && ['status', 'recent', 'quicksave'].includes(saved)) {
+        setActiveTab(saved as TabType);
+      }
+    });
+  }, []);
+
+  // Persist tab selection on change
+  const switchTab = (tab: TabType) => {
+    setActiveTab(tab);
+    const store = chrome.storage?.session ?? chrome.storage.local;
+    store.set({ [TAB_KEY]: tab });
+  };
 
   // Refresh data periodically
   useEffect(() => {
@@ -24,15 +45,21 @@ export default function App() {
       <div className="flex border-b border-gray-200">
         <TabButton
           active={activeTab === 'status'}
-          onClick={() => setActiveTab('status')}
+          onClick={() => switchTab('status')}
         >
           Status
         </TabButton>
         <TabButton
           active={activeTab === 'recent'}
-          onClick={() => setActiveTab('recent')}
+          onClick={() => switchTab('recent')}
         >
           Recent
+        </TabButton>
+        <TabButton
+          active={activeTab === 'quicksave'}
+          onClick={() => switchTab('quicksave')}
+        >
+          Quick Save
         </TabButton>
         <TabButton
           active={false}
@@ -56,6 +83,10 @@ export default function App() {
 
         {activeTab === 'recent' && (
           <RecentActivity posts={recentPosts} isLoading={isLoading} />
+        )}
+
+        {activeTab === 'quicksave' && (
+          <QuickSave onSaved={refresh} />
         )}
       </div>
 
