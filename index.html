@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Social Media Saver - Save Content From Any Platform</title>
+  <meta name="description" content="A browser extension that lets you save content from Facebook, Twitter/X, LinkedIn, Instagram, TikTok, Reddit, and Pinterest to your own website or local storage.">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #1a73e8;
+      --primary-dark: #1557b0;
+      --text: #202124;
+      --text-light: #5f6368;
+      --bg: #ffffff;
+      --bg-alt: #f8f9fa;
+      --border: #e8eaed;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Navigation */
+    nav {
+      position: sticky;
+      top: 0;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    nav .logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    nav .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+      list-style: none;
+    }
+
+    nav .nav-links a {
+      color: var(--text-light);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    nav .nav-links a:hover {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 5rem 2rem 4rem;
+      background: linear-gradient(180deg, #e8f0fe 0%, var(--bg) 100%);
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1.25rem;
+      color: var(--text);
+    }
+
+    .hero h1 span {
+      color: var(--primary);
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text-light);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.75rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:hover {
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: var(--bg);
+      color: var(--text);
+      border: 2px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Platforms strip */
+    .platforms-strip {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      padding: 2rem;
+      flex-wrap: wrap;
+      color: var(--text-light);
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .platforms-strip span {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* Sections */
+    .section {
+      padding: 4rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-alt {
+      background: var(--bg-alt);
+    }
+
+    .section-alt .section {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .section-header h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-header p {
+      font-size: 1.05rem;
+      color: var(--text-light);
+      max-width: 550px;
+      margin: 0 auto;
+    }
+
+    /* Features grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      transition: box-shadow 0.2s;
+    }
+
+    .feature-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: #e8f0fe;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      font-size: 0.92rem;
+      color: var(--text-light);
+    }
+
+    /* How it works */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 2rem;
+      counter-reset: step;
+    }
+
+    .step {
+      text-align: center;
+      position: relative;
+    }
+
+    .step-number {
+      width: 48px;
+      height: 48px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0 auto 1rem;
+    }
+
+    .step h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .step p {
+      font-size: 0.9rem;
+      color: var(--text-light);
+    }
+
+    /* Destinations */
+    .dest-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .dest-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      text-align: center;
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+
+    .dest-card .dest-icon {
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* CTA */
+    .cta {
+      text-align: center;
+      padding: 4rem 2rem;
+      background: linear-gradient(180deg, var(--bg) 0%, #e8f0fe 100%);
+    }
+
+    .cta h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .cta p {
+      color: var(--text-light);
+      font-size: 1.05rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-light);
+      font-size: 0.85rem;
+    }
+
+    footer .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      .hero p {
+        font-size: 1rem;
+      }
+
+      nav {
+        padding: 0.75rem 1rem;
+      }
+
+      nav .nav-links {
+        gap: 1rem;
+      }
+
+      .section {
+        padding: 3rem 1.25rem;
+      }
+
+      .platforms-strip {
+        gap: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <div class="logo">Social Media Saver</div>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#destinations">Destinations</a></li>
+      <li><a href="privacy-policy.html">Privacy</a></li>
+    </ul>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Save Social Media Content<br><span>On Your Terms</span></h1>
+    <p>A browser extension that lets you save posts, images, and videos from your favorite platforms to your own website, local storage, or file system.</p>
+    <div class="hero-buttons">
+      <a href="#" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        Install Extension
+      </a>
+      <a href="https://github.com" class="btn btn-secondary">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+  </section>
+
+  <!-- Supported platforms -->
+  <div class="platforms-strip">
+    <span>Facebook</span>
+    <span>Twitter / X</span>
+    <span>LinkedIn</span>
+    <span>Instagram</span>
+    <span>TikTok</span>
+    <span>Reddit</span>
+    <span>Pinterest</span>
+  </div>
+
+  <!-- Features -->
+  <div class="section-alt" id="features">
+    <div class="section">
+      <div class="section-header">
+        <h2>Features</h2>
+        <p>Everything you need to own your social media content.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">&#128190;</div>
+          <h3>Universal Save Button</h3>
+          <p>A non-intrusive "Save" button is injected beside every post, image, and video on supported platforms.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#127760;</div>
+          <h3>Multi-Platform Support</h3>
+          <p>Works across Facebook, Twitter/X, LinkedIn, Instagram, TikTok, Reddit, and Pinterest.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128274;</div>
+          <h3>Privacy First</h3>
+          <p>All data stays on your device. No telemetry, no tracking, no data sent to external servers without your action.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128640;</div>
+          <h3>Flexible Destinations</h3>
+          <p>Publish to WordPress, Drupal, Micropub endpoints, custom APIs, or save locally as HTML files.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128260;</div>
+          <h3>Background Sync</h3>
+          <p>Queue-based background processing with automatic retry, network awareness, and real-time status tracking.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128196;</div>
+          <h3>Full Content Extraction</h3>
+          <p>Captures text, images, videos, metadata, hashtags, engagement metrics, and author info from every post.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="section" id="how-it-works">
+    <div class="section-header">
+      <h2>How It Works</h2>
+      <p>Three steps to take control of your content.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Install the Extension</h3>
+        <p>Add Social Media Saver to Chrome, Firefox, or Edge from your browser's extension store.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Browse Social Media</h3>
+        <p>Visit any supported platform. A "Save" button appears on every post automatically.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>Save &amp; Publish</h3>
+        <p>Click save to store content locally or publish it to your configured destination in the background.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Destinations -->
+  <div class="section-alt" id="destinations">
+    <div class="section">
+      <div class="section-header">
+        <h2>Publishing Destinations</h2>
+        <p>Save your content wherever you want it.</p>
+      </div>
+      <div class="dest-grid">
+        <div class="dest-card">
+          <div class="dest-icon">&#127468;</div>
+          WordPress
+        </div>
+        <div class="dest-card">
+          <div class="dest-icon">&#128167;</div>
+          Drupal
+        </div>
+        <div class="dest-card">
+          <div class="dest-icon">&#128228;</div>
+          Micropub
+        </div>
+        <div class="dest-card">
+          <div class="dest-icon">&#128269;</div>
+          Custom REST API
+        </div>
+        <div class="dest-card">
+          <div class="dest-icon">&#128193;</div>
+          Local Files (HTML)
+        </div>
+        <div class="dest-card">
+          <div class="dest-icon">&#128451;</div>
+          IndexedDB (Browser)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Browser compatibility -->
+  <div class="section">
+    <div class="section-header">
+      <h2>Browser Compatibility</h2>
+      <p>Works with all major browsers.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number" style="background:#4285f4;">C</div>
+        <h3>Chrome</h3>
+        <p>Full Manifest V3 support with all features.</p>
+      </div>
+      <div class="step">
+        <div class="step-number" style="background:#ff7139;">F</div>
+        <h3>Firefox</h3>
+        <p>WebExtensions API with full platform support.</p>
+      </div>
+      <div class="step">
+        <div class="step-number" style="background:#0078d7;">E</div>
+        <h3>Edge</h3>
+        <p>Chromium-based, works out of the box.</p>
+      </div>
+      <div class="step">
+        <div class="step-number" style="background:#999;">S</div>
+        <h3>Safari</h3>
+        <p>Supported with minimal adaptations.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta">
+    <h2>Ready to Own Your Content?</h2>
+    <p>Install Social Media Saver and start saving posts from any platform today.</p>
+    <a href="#" class="btn btn-primary">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+      Get the Extension
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="privacy-policy.html">Privacy Policy</a>
+      <a href="https://github.com">GitHub</a>
+      <a href="#features">Features</a>
+    </div>
+    <p>Social Media Saver &mdash; Open source, privacy-first browser extension. MIT License.</p>
+  </footer>
+
+</body>
+</html>
