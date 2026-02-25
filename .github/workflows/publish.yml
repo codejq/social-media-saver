@@ -61,7 +61,10 @@ jobs:
 
       # ── 3. Dependencies ────────────────────────────────────────────────────
       - name: Install dependencies
-        run: npm ci
+        # npm install instead of npm ci: sharp's lock file entries are
+        # platform-specific (win32 vs linux), so npm ci fails on Linux when
+        # the lock file was generated on Windows.
+        run: npm install
 
       # ── 4. Icons ───────────────────────────────────────────────────────────
       - name: Generate PNG icons from SVG
