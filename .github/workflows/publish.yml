@@ -32,11 +32,11 @@ on:
       publish_target:
         description: 'Publish audience'
         required: true
-        default: 'trustedTesters'
+        default: 'default'
         type: choice
         options:
-          - trustedTesters
           - default
+          - trustedTesters
 
 # Extension ID (not a secret — it is part of the public store URL)
 env:
@@ -167,7 +167,7 @@ jobs:
 
       # ── 13. Publish ────────────────────────────────────────────────────────
       #  Runs when:
-      #    • triggered by a git tag push  (always publishes to trustedTesters)
+      #    • triggered by a git tag push  (always publishes to everyone / default)
       #    • triggered manually AND upload_only == 'false'
       - name: Publish to Chrome Web Store
         if: >
@@ -177,7 +177,7 @@ jobs:
         env:
           ACCESS_TOKEN: ${{ steps.token.outputs.access_token }}
         run: |
-          TARGET="${{ github.event.inputs.publish_target || 'trustedTesters' }}"
+          TARGET="${{ github.event.inputs.publish_target || 'default' }}"
           echo "Publishing to audience: $TARGET"
 
           RESPONSE=$(curl -s -X POST \
