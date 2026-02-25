@@ -73,17 +73,33 @@ jobs:
 
       # ── 4. Dependencies ────────────────────────────────────────────────────
       - name: Install dependencies
-        run: npm install --verbose 2>&1
+        # npm install (not npm ci) — sharp's lock file is platform-specific;
+        # npm ci would fail on Linux when the lock was generated on Windows.
+        run: npm install
 
-      # ── 5. Icons ───────────────────────────────────────────────────────────
+      # ── 5. Stamp manifest version from git tag ─────────────────────────────
+      - name: Set manifest version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            echo "Tag push — setting version to $VERSION"
+            jq ".version = \"$VERSION\"" public/manifest.json > tmp.json
+            mv tmp.json public/manifest.json
+          else
+            VERSION=$(jq -r .version public/manifest.json)
+            echo "Manual dispatch — keeping version $VERSION from manifest"
+          fi
+          echo "Manifest version: $(jq -r .version public/manifest.json)"
+
+      # ── 6. Icons ───────────────────────────────────────────────────────────
       - name: Generate PNG icons from SVG
         run: npm run icons
 
-      # ── 6. Build ───────────────────────────────────────────────────────────
+      # ── 7. Build ───────────────────────────────────────────────────────────
       - name: Build extension
         run: npm run build
 
-      # ── 7. Package ─────────────────────────────────────────────────────────
+      # ── 8. Package ─────────────────────────────────────────────────────────
       - name: Create extension zip
         run: |
           cd dist
@@ -91,7 +107,15 @@ jobs:
           cd ..
           echo "Zip size: $(du -sh social-media-saver.zip | cut -f1)"
 
-      # ── 8. OAuth access token ──────────────────────────────────────────────
+      # ── 9. Upload artifact (direct download, no store required) ────────────
+      - name: Upload extension zip as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: social-media-saver-${{ github.ref_name }}
+          path: social-media-saver.zip
+          retention-days: 90
+
+      # ── 11. OAuth access token ─────────────────────────────────────────────
       - name: Get OAuth access token
         id: token
         env:
@@ -117,7 +141,7 @@ jobs:
           echo "::add-mask::$ACCESS_TOKEN"
           echo "access_token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
 
-      # ── 9. Upload ──────────────────────────────────────────────────────────
+      # ── 12. Upload to store ────────────────────────────────────────────────
       - name: Upload to Chrome Web Store
         id: upload
         env:
@@ -141,7 +165,7 @@ jobs:
 
           echo "Upload succeeded."
 
-      # ── 10. Publish ────────────────────────────────────────────────────────
+      # ── 13. Publish ────────────────────────────────────────────────────────
       #  Runs when:
       #    • triggered by a git tag push  (always publishes to trustedTesters)
       #    • triggered manually AND upload_only == 'false'
