@@ -57,24 +57,33 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          # no npm cache — avoids stale cache conflicts with platform-specific
+          # native modules (sharp)
 
-      # ── 3. Dependencies ────────────────────────────────────────────────────
+      # ── 3. Diagnostics ─────────────────────────────────────────────────────
+      - name: Show environment
+        run: |
+          echo "=== Node / npm versions ==="
+          node --version
+          npm --version
+          echo "=== package.json ==="
+          cat package.json
+          echo "=== lock file header ==="
+          head -5 package-lock.json
+
+      # ── 4. Dependencies ────────────────────────────────────────────────────
       - name: Install dependencies
-        # npm install instead of npm ci: sharp's lock file entries are
-        # platform-specific (win32 vs linux), so npm ci fails on Linux when
-        # the lock file was generated on Windows.
-        run: npm install
+        run: npm install --verbose 2>&1
 
-      # ── 4. Icons ───────────────────────────────────────────────────────────
+      # ── 5. Icons ───────────────────────────────────────────────────────────
       - name: Generate PNG icons from SVG
         run: npm run icons
 
-      # ── 5. Build ───────────────────────────────────────────────────────────
+      # ── 6. Build ───────────────────────────────────────────────────────────
       - name: Build extension
         run: npm run build
 
-      # ── 6. Package ─────────────────────────────────────────────────────────
+      # ── 7. Package ─────────────────────────────────────────────────────────
       - name: Create extension zip
         run: |
           cd dist
@@ -82,7 +91,7 @@ jobs:
           cd ..
           echo "Zip size: $(du -sh social-media-saver.zip | cut -f1)"
 
-      # ── 7. OAuth access token ──────────────────────────────────────────────
+      # ── 8. OAuth access token ──────────────────────────────────────────────
       - name: Get OAuth access token
         id: token
         env:
@@ -108,7 +117,7 @@ jobs:
           echo "::add-mask::$ACCESS_TOKEN"
           echo "access_token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
 
-      # ── 8. Upload ──────────────────────────────────────────────────────────
+      # ── 9. Upload ──────────────────────────────────────────────────────────
       - name: Upload to Chrome Web Store
         id: upload
         env:
@@ -132,7 +141,7 @@ jobs:
 
           echo "Upload succeeded."
 
-      # ── 9. Publish ─────────────────────────────────────────────────────────
+      # ── 10. Publish ────────────────────────────────────────────────────────
       #  Runs when:
       #    • triggered by a git tag push  (always publishes to trustedTesters)
       #    • triggered manually AND upload_only == 'false'
