@@ -1,51 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#5B21B6"/>
-      <stop offset="50%" stop-color="#7C3AED"/>
-      <stop offset="100%" stop-color="#EC4899"/>
-    </linearGradient>
-    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#5B21B6"/>
-      <stop offset="100%" stop-color="#9333EA"/>
+    <linearGradient id="sky" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
     </linearGradient>
   </defs>
 
-  <!-- Background: rich purple→pink gradient, rounded square -->
-  <rect width="128" height="128" rx="26" fill="url(#bgGrad)"/>
+  <!-- Sky blue gradient background -->
+  <rect width="128" height="128" rx="24" fill="url(#sky)"/>
 
-  <!-- Glassmorphism top highlight -->
-  <rect x="6" y="6" width="116" height="58" rx="22" fill="rgba(255,255,255,0.13)"/>
+  <!-- Floppy disk body — white with classic notched top-right corner -->
+  <path d="M20 20 L84 20 L108 44 L108 108 L20 108 Z" fill="white"/>
 
-  <!-- ── Social network nodes ── -->
-  <!-- Left node -->
-  <circle cx="34" cy="46" r="8" fill="white" opacity="0.92"/>
-  <!-- Top-centre node (largest = "you") -->
-  <circle cx="64" cy="28" r="9" fill="white"/>
-  <!-- Right node -->
-  <circle cx="94" cy="46" r="8" fill="white" opacity="0.92"/>
+  <!-- Notch corner fill (shows depth) -->
+  <path d="M84 20 L108 44 L84 44 Z" fill="#7DD3FC"/>
 
-  <!-- Connection lines -->
-  <line x1="34" y1="46" x2="64" y2="28"
-        stroke="rgba(255,255,255,0.60)" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="64" y1="28" x2="94" y2="46"
-        stroke="rgba(255,255,255,0.60)" stroke-width="2.5" stroke-linecap="round"/>
-  <!-- Dashed base line for the social-network triangle -->
-  <line x1="34" y1="46" x2="94" y2="46"
-        stroke="rgba(255,255,255,0.38)" stroke-width="2" stroke-linecap="round"
-        stroke-dasharray="5 4"/>
+  <!-- Label area (upper-left of disk) -->
+  <rect x="28" y="26" width="44" height="30" rx="3" fill="#BAE6FD"/>
 
-  <!-- ── Bookmark / Save shape ── -->
-  <!-- Pentagon pointing downward — the universal "bookmark / save" symbol -->
-  <path d="M36 60 L92 60 L92 112 L64 95 L36 112 Z"
-        fill="white" opacity="0.97"/>
+  <!-- Metal shutter (lower portion of disk) -->
+  <rect x="36" y="68" width="56" height="34" rx="4" fill="#0284C7"/>
 
-  <!-- Download arrow centred inside the bookmark -->
-  <!-- Vertical shaft -->
-  <line x1="64" y1="71" x2="64" y2="86"
-        stroke="url(#arrowGrad)" stroke-width="5" stroke-linecap="round"/>
-  <!-- Arrow-head chevron -->
-  <polyline points="55,80 64,89 73,80"
-            fill="none" stroke="url(#arrowGrad)"
-            stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Shutter read/write slot -->
+  <rect x="50" y="74" width="28" height="22" rx="2" fill="white" opacity="0.30"/>
 </svg>
