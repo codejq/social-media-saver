@@ -282,15 +282,23 @@ export class FacebookExtractor extends BaseExtractor {
 
   findButtonInjectionPoint(postElement: HTMLElement): HTMLElement | null {
     // Locate the post-level action button, skipping any inside comment articles.
+    // Bug 2 fix (injection): guard against comment Like buttons whose enclosing
+    // role="article" element has no aria-label (single-post-view layout).
+    // A comment article never contains a story_message element; that is our reliable
+    // discriminator in addition to the existing "Comment by" aria-label check.
     let likeBtn: HTMLElement | null = null;
 
     const allLikes = postElement.querySelectorAll<HTMLElement>('[aria-label="Like"]');
     for (const btn of allLikes) {
       const commentArticle = btn.closest('[role="article"]');
-      if (!commentArticle || !commentArticle.getAttribute('aria-label')?.startsWith('Comment by')) {
-        likeBtn = btn;
-        break;
+      if (commentArticle) {
+        const label = commentArticle.getAttribute('aria-label') || '';
+        if (label.startsWith('Comment by')) continue; // definitely a comment
+        // Unlabelled role="article" without story_message is also a comment article
+        if (!commentArticle.querySelector('[data-ad-rendering-role="story_message"]')) continue;
       }
+      likeBtn = btn;
+      break;
     }
 
     // Fallback anchor: the Share button is always at the post level
@@ -364,6 +372,18 @@ export class FacebookExtractor extends BaseExtractor {
     const ariaLabel = element.getAttribute('aria-label') || '';
     if (ariaLabel.startsWith('Comment by')) return false;
 
+    // Bug 2 fix: on profile/timeline pages Facebook also uses role="article" for
+    // comments that have NO aria-label (e.g. on single-post-view URLs).
+    // A genuine post ALWAYS contains a [data-ad-rendering-role="story_message"] element;
+    // comment articles NEVER do.  If the element has role="article" but lacks the
+    // story_message marker it is a comment (or a loading placeholder) — reject it.
+    const isArticleElement = element.getAttribute('role') === 'article';
+    if (isArticleElement) {
+      const hasStoryMessage =
+        element.querySelector('[data-ad-rendering-role="story_message"]') !== null;
+      if (!hasStoryMessage) return false;
+    }
+
     // Must have some text content (at least 20 characters)
     const textContent = element.textContent || '';
     if (textContent.length < 20) {
@@ -417,6 +437,23 @@ export class FacebookExtractor extends BaseExtractor {
    * picker would otherwise land on a comment body instead of the post text.
    */
   extractTextContent(postElement: HTMLElement): ContentFormats {
+    // Bug 1 fix: prefer the story_message element which wraps only the post body
+    // and is never present inside comment articles.  This avoids selecting comment
+    // text even when comment articles are nested inside the post container.
+    const storyMessage = postElement.querySelector<HTMLElement>(
+      '[data-ad-rendering-role="story_message"]'
+    );
+    if (storyMessage) {
+      const html = storyMessage.innerHTML || '';
+      const sanitizedHtml = DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'a', 'ul', 'ol', 'li', 'blockquote'],
+        ALLOWED_ATTR: ['href'],
+      });
+      const text = storyMessage.textContent?.trim() || '';
+      const markdown = this.turndown.turndown(sanitizedHtml);
+      return { text, html: sanitizedHtml, markdown };
+    }
+
     const selector = this.selectors.postText;
     let textElement: Element | null = null;
     let bestLen = 0;
@@ -424,9 +461,16 @@ export class FacebookExtractor extends BaseExtractor {
     if (selector) {
       const candidates = postElement.querySelectorAll(selector);
       candidates.forEach((el) => {
-        // Skip elements that live inside a nested comment article
+        // Skip elements that live inside a nested comment article.
+        // We check both 'Comment by' (English) and any role="article" that lacks a
+        // story_message descendant (covers non-English and unlabelled comment articles).
         const commentArticle = el.closest('[role="article"]');
-        if (commentArticle?.getAttribute('aria-label')?.startsWith('Comment by')) return;
+        if (commentArticle) {
+          const label = commentArticle.getAttribute('aria-label') || '';
+          if (label.startsWith('Comment by')) return;
+          // If the nearest article ancestor has no story_message, it is a comment article.
+          if (!commentArticle.querySelector('[data-ad-rendering-role="story_message"]')) return;
+        }
         const len = (el.textContent || '').trim().length;
         if (len > bestLen) {
           bestLen = len;
