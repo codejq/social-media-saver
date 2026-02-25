@@ -46,6 +46,8 @@ jobs:
   publish:
     name: Build & Publish Extension
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # required to create GitHub Releases and upload assets
 
     steps:
       # ── 1. Source ──────────────────────────────────────────────────────────
@@ -107,15 +109,26 @@ jobs:
           cd ..
           echo "Zip size: $(du -sh social-media-saver.zip | cut -f1)"
 
-      # ── 9. Upload artifact (direct download, no store required) ────────────
-      - name: Upload extension zip as artifact
+      # ── 9. Upload artifact (always — available on every run) ───────────────
+      - name: Upload extension zip as workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: social-media-saver-${{ github.ref_name }}
           path: social-media-saver.zip
           retention-days: 90
 
-      # ── 11. OAuth access token ─────────────────────────────────────────────
+      # ── 10. GitHub Release (tag pushes only) ────────────────────────────────
+      # Creates a release on the Releases page and attaches the zip so users
+      # can download and sideload the extension without visiting the Web Store.
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Social Media Saver ${{ github.ref_name }}
+          generate_release_notes: true
+          files: social-media-saver.zip
+
+      # ── 11. OAuth access token ──────────────────────────────────────────────
       - name: Get OAuth access token
         id: token
         env:
